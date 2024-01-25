@@ -1,6 +1,6 @@
 use glow::*;
 use particle::Particle;
-use sdl2::event::WindowEvent;
+use sdl2::{event::WindowEvent, keyboard::Keycode};
 
 mod particle;
 mod macros;
@@ -112,8 +112,10 @@ fn main() {
         let start = std::time::Instant::now();
         let mut frame_count = 0;
         let mut pressed = false;
+        let mut erasing = false;
         let mut mouse_x = 0;
         let mut mouse_y = 0;
+        let mut particle_type = Particle::Sand;
         'render: loop {
             {
                 for event in events_loop.poll_iter() {
@@ -135,6 +137,9 @@ fn main() {
                             if mousestate.left() {
                                 mouse_x = x;
                                 mouse_y = y;
+                            } else if mousestate.right() {
+                                mouse_x = x;
+                                mouse_y = y;
                             }
                         }
                         sdl2::event::Event::MouseButtonDown { mouse_btn, x, y, .. } => {
@@ -142,11 +147,30 @@ fn main() {
                                 pressed = true;
                                 mouse_x = x;
                                 mouse_y = y;
+                            } else if mouse_btn == sdl2::mouse::MouseButton::Right {
+                                pressed = true;
+                                mouse_x = x;
+                                mouse_y = y;
+                                erasing = true;
                             }
                         }
                         sdl2::event::Event::MouseButtonUp { mouse_btn, .. } => {
                             if mouse_btn == sdl2::mouse::MouseButton::Left {
                                 pressed = false;
+                            } else if mouse_btn == sdl2::mouse::MouseButton::Right {
+                                pressed = false;
+                                erasing = false;
+                            }
+                        }
+                        sdl2::event::Event::KeyDown { keycode, .. } => {
+                            if let Some(keycode) = keycode {
+                                if keycode == Keycode::Num1 {
+                                    particle_type = Particle::Sand;
+                                } else if keycode == Keycode::Num2 {
+                                    particle_type = Particle::Stone;
+                                } else if keycode == Keycode::Num0 {
+                                    particle_type = Particle::Blank;
+                                }
                             }
                         }
                         _ => {}
@@ -157,14 +181,18 @@ fn main() {
                 gl.bind_buffer(glow::SHADER_STORAGE_BUFFER, Some(matrix_buffer_1));
                 let x = (mouse_x as f32 / CELL_SIZE as f32).floor();
                 let y = (mouse_y as f32 / CELL_SIZE as f32).floor();
-                for i in -50..50 {
-                    for j in -50..50 {
+                for i in -3..3 {
+                    for j in -3..3 {
                         let i = (((y - i as f32) * MATRIX_COLS as f32) + (x - j as f32)).floor() as usize;
-                        gl.buffer_sub_data_u8_slice(glow::SHADER_STORAGE_BUFFER, (i*4) as i32, &[1]);
+                        if erasing {
+                            gl.buffer_sub_data_u8_slice(glow::SHADER_STORAGE_BUFFER, (i*4) as i32, &[0]);
+                        } else {
+                            gl.buffer_sub_data_u8_slice(glow::SHADER_STORAGE_BUFFER, (i*4) as i32, &[particle_type.to_id()]);
+                        }
                     }
                 }
             }
-            println!("DT: {:?}", 1. / ((start.elapsed().as_micros() as f32 * 0.000001) / frame_count as f32));
+            //println!("DT: {:?}", 1. / ((start.elapsed().as_micros() as f32 * 0.000001) / frame_count as f32));
             frame_count += 1;
 
             gl.use_program(Some(simulate_program));

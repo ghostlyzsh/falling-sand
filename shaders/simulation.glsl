@@ -13,6 +13,10 @@ layout(std430, binding = 3) buffer matrixBufferCopy {
     int idsCopy[];
 };
 
+float rand(vec2 co) {
+    return fract(sin(dot(co.xy, vec2(12.9898,78.233)))*43758.5453123);
+}
+
 void main() {
     int width = int(floor(dimensions.x / CELL_SIZE));
     int height = int(floor(dimensions.y / CELL_SIZE));
@@ -23,12 +27,18 @@ void main() {
             if (idsCopy[i+width] == 0) {
                 ids[i] = 0;
                 ids[i+width] = 1;
-            } else if (idsCopy[i+width-1] == 0 && gl_GlobalInvocationID.x > 0) {
-                ids[i] = 0;
-                ids[i+width-1] = 1;
-            } else if (idsCopy[i+width+1] == 0 && gl_GlobalInvocationID.x < width-1) {
-                ids[i] = 0;
-                ids[i+width+1] = 1;
+            } else {
+                float r = rand(vec2(gl_GlobalInvocationID.x, gl_GlobalInvocationID.y));
+                if (idsCopy[i+width-1] == 0 && gl_GlobalInvocationID.x > 0 && r < 0.5) {
+                    ids[i] = 0;
+                    ids[i+width-1] = 1;
+                } else if (idsCopy[i+width+1] == 0 && gl_GlobalInvocationID.x < width-1) {
+                    ids[i] = 0;
+                    ids[i+width+1] = 1;
+                } else if (idsCopy[i+width-1] == 0 && gl_GlobalInvocationID.x > 0) {
+                    ids[i] = 0;
+                    ids[i+width-1] = 1;
+                }
             }
         }/* else if (id == 0) {
             if (idsCopy[i-width] == 1) {

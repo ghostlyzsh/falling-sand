@@ -154,11 +154,15 @@ fn main() {
                 }
             }
             if pressed {
+                gl.bind_buffer(glow::SHADER_STORAGE_BUFFER, Some(matrix_buffer_1));
                 let x = (mouse_x as f32 / CELL_SIZE as f32).floor();
                 let y = (mouse_y as f32 / CELL_SIZE as f32).floor();
-                let i = ((y * MATRIX_COLS as f32) + x).floor() as usize;
-                gl.bind_buffer(glow::SHADER_STORAGE_BUFFER, Some(matrix_buffer_1));
-                gl.buffer_sub_data_u8_slice(glow::SHADER_STORAGE_BUFFER, (i*4) as i32, &[1]);
+                for i in -50..50 {
+                    for j in -50..50 {
+                        let i = (((y - i as f32) * MATRIX_COLS as f32) + (x - j as f32)).floor() as usize;
+                        gl.buffer_sub_data_u8_slice(glow::SHADER_STORAGE_BUFFER, (i*4) as i32, &[1]);
+                    }
+                }
             }
             println!("DT: {:?}", 1. / ((start.elapsed().as_micros() as f32 * 0.000001) / frame_count as f32));
             frame_count += 1;
